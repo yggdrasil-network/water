@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Water by songgao</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Water</h1>
+        <p class="header">A simple TUN/TAP library written in native Go.</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/songgao/water/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/songgao/water/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/songgao/water">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/songgao">songgao</a></p>
+
+
+      </header>
+      <section>
+        <h1>water</h1>
+
+<p><code>water</code> is a native Go library for <a href="http://en.wikipedia.org/wiki/TUN/TAP">TUN/TAP</a> interfaces.</p>
+
+<p><code>water</code> is designed to be simple and efficient. It</p>
+
+<ul>
+<li>wraps almost only syscalls and uses only Go standard types;</li>
+<li>exposes standard interfaces; plays well with standard packages like <code>io</code>, <code>bufio</code>, etc..</li>
+<li>does not handle memory management (allocating/destructing slice). It's up to user to decide how to deal with buffers; whether to use GC.</li>
+</ul><p><code>water/waterutil</code> has some useful functions to interpret MAC farme headers and IP packet headers. It also contains some constants such as protocol numbers and ethernet frame types.</p>
+
+<h2>Installation</h2>
+
+<pre><code>go get -u github.com/songgao/water
+go get -u github.com/songgao/water/waterutil
+</code></pre>
+
+<h2>Documentation</h2>
+
+<p><a href="http://godoc.org/github.com/songgao/water">http://godoc.org/github.com/songgao/water</a></p>
+
+<p><a href="http://godoc.org/github.com/songgao/water/waterutil">http://godoc.org/github.com/songgao/water/waterutil</a></p>
+
+<h2>Example</h2>
+
+<div class="highlight"><pre><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+    <span class="s">"github.com/songgao/water"</span>
+    <span class="s">"github.com/songgao/water/waterutil"</span>
+    <span class="s">"fmt"</span>
+<span class="p">)</span>
+
+<span class="kd">const</span> <span class="nx">BUFFERSIZE</span> <span class="p">=</span> <span class="mi">1522</span>
+
+<span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">ifce</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">water</span><span class="p">.</span><span class="nx">NewTAP</span><span class="p">(</span><span class="s">""</span><span class="p">)</span>
+    <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"%v, %v\n\n"</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">ifce</span><span class="p">)</span>
+    <span class="nx">buffer</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span> <span class="nx">BUFFERSIZE</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">{</span>
+        <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">ifce</span><span class="p">.</span><span class="nx">Read</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+            <span class="k">break</span>
+        <span class="p">}</span>
+        <span class="nx">ethertype</span> <span class="o">:=</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">MACEthertype</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nx">ethertype</span> <span class="o">==</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">IPv4</span> <span class="p">{</span>
+            <span class="nx">packet</span> <span class="o">:=</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">MACPayload</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">IsIPv4</span><span class="p">(</span><span class="nx">packet</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Source:      %v [%v]\n"</span><span class="p">,</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">MACSource</span><span class="p">(</span><span class="nx">buffer</span><span class="p">),</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">IPv4Source</span><span class="p">(</span><span class="nx">packet</span><span class="p">))</span>
+                <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Destination: %v [%v]\n"</span><span class="p">,</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">MACDestination</span><span class="p">(</span><span class="nx">buffer</span><span class="p">),</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">IPv4Destination</span><span class="p">(</span><span class="nx">packet</span><span class="p">))</span>
+                <span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">"Protocol:    %v\n\n"</span><span class="p">,</span> <span class="nx">waterutil</span><span class="p">.</span><span class="nx">IPv4Protocol</span><span class="p">(</span><span class="nx">packet</span><span class="p">))</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This piece of code creates a <code>TAP</code> interface, and prints some header information for every IPv4 packet. After pull up the <code>main.go</code>, you'll need to bring up the interface and assign IP address. All of these need root permission.</p>
+
+<div class="highlight"><pre>sudo go run main.go
+</pre></div>
+
+<div class="highlight"><pre>sudo ip link <span class="nb">set </span>dev tap0 up
+sudo ip addr add 10.0.0.1/24 dev tap0
+</pre></div>
+
+<p>Now, try sending some ICMP broadcast message:</p>
+
+<div class="highlight"><pre>ping -b 10.0.0.255
+</pre></div>
+
+<p>You'll see the <code>main.go</code> print something like:</p>
+
+<pre><code>&lt;nil&gt;, &amp;{true 0xf84003f058 tap0}
+
+Source:      42:35:da:af:2b:00 [10.0.0.1]
+Destination: ff:ff:ff:ff:ff:ff [10.0.0.255]
+Protocol:    1
+
+Source:      42:35:da:af:2b:00 [10.0.0.1]
+Destination: ff:ff:ff:ff:ff:ff [10.0.0.255]
+Protocol:    1
+
+Source:      42:35:da:af:2b:00 [10.0.0.1]
+Destination: ff:ff:ff:ff:ff:ff [10.0.0.255]
+Protocol:    1
+</code></pre>
+
+<h2>TODO</h2>
+
+<ul>
+<li>IPv6 Support in <code>waterutil</code>
+</li>
+<li>Darwin(Mac) Support</li>
+</ul><h2>LICENSE</h2>
+
+<p>GNU LESSER GENERAL PUBLIC LICENSE Version 3</p>
+
+<h2>Alternatives</h2>
+
+<p><code>tuntap</code>: <a href="https://code.google.com/p/tuntap/">https://code.google.com/p/tuntap/</a></p>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
